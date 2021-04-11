@@ -107,6 +107,77 @@ test('rethrows non-testing-lib errors', () => {
   ).rejects.toBe(error)
 })
 
+test('throws testing-lib errors', async () => {
+  const {findByTestId, queryByTestId} = renderIntoDocument(
+    `<div data-testid="parent-div"></div>`,
+  )
+
+  const parentDiv = queryByTestId('parent-div')
+
+  setTimeout(() => {
+    for (let i = 0; i < 3; i++) {
+      const innerElement = document.createElement('div')
+      innerElement.setAttribute('data-testid', 'new-div')
+      parentDiv.insertAdjacentElement('afterbegin', innerElement)
+    }
+  }, 20)
+
+  const promise = async () =>
+    waitForElementToBeRemoved(await findByTestId('new-div'))
+
+  await expect(promise).rejects.toThrowErrorMatchingInlineSnapshot(`
+          "Found multiple elements by: [data-testid="new-div"]
+
+          Here are the matching elements:
+
+          <div
+            data-testid="new-div"
+          />
+
+          <div
+            data-testid="new-div"
+          />
+
+          <div
+            data-testid="new-div"
+          />
+
+          (If this is intentional, then use the \`*AllBy*\` variant of the query (like \`queryAllByText\`, \`getAllByText\`, or \`findAllByText\`)).
+
+          <body>
+            <div
+              data-testid="parent-div"
+            >
+              <div
+                data-testid="new-div"
+              />
+              <div
+                data-testid="new-div"
+              />
+              <div
+                data-testid="new-div"
+              />
+            </div>
+          </body>
+
+          <body>
+            <div
+              data-testid="parent-div"
+            >
+              <div
+                data-testid="new-div"
+              />
+              <div
+                data-testid="new-div"
+              />
+              <div
+                data-testid="new-div"
+              />
+            </div>
+          </body>"
+        `)
+})
+
 test('logs timeout error when it times out', async () => {
   const div = document.createElement('div')
   await expect(
